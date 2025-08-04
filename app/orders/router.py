@@ -8,119 +8,125 @@ from app.db import get_session
 from app.settings import settings
 from .models import Product
 from . import schemas
+from app.auth.dependencies import get_admin_user, get_current_user
+from .models import Order, OrderDetail, OrderProductLink
+from .schemas import OrderCreate, OrderRead, OrderUpdate
+from fastapi_limiter.depends import RateLimiter
 
-router = APIRouter(prefix="products")
+
+router = APIRouter(prefix="/orders", tags=["orders"])
 
 
-@router.post("/", response_model=Product, status_code=status.HTTP_201_CREATED)
-async def create(
-    product: schemas.ProductCreate,
-    session: Annotated[AsyncSession, Depends(get_session)],
+# CREATE Order (admin only)
+@router.post(
+    "/",
+    response_model=OrderRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(RateLimiter(times=1, seconds=60))],
+)
+async def create_order(
+    order_in: OrderCreate, session: Annotated[AsyncSession, Depends(get_session)]
 ):
-    product_db = Product(product)
-    session.add(product_db)
+    order = Order()
+    session.add(order)
     await session.commit()
-    await session.refresh(product_db)
-    return product_db
+    await session.refresh(order)
 
-
-@router.get("/{id}", response_model=Product)
-async def read(
-    id: uuid.UUID,
-    session: Annotated[AsyncSession, Depends(get_session)],
-):
-    product = await session.get(Product, id)
-
-    # Check if id exists. If not, return 404 not found response
-    if not product:
-        raise HTTPException(status_code=404, detail=f"Product with id {id} not found")
-
-    return product
-
-
-@router.put("/{id}", response_model=Product)
-async def update(
-    id: uuid.UUID,
-    product_update: schemas.ProductUpdate,
-    session: Annotated[AsyncSession, Depends(get_session)],
-):
-    product_db = await session.get(Product, id)
-    if not product_db:
-        raise HTTPException(status_code=404, detail=f"Product with id {id} not found")
-
-    hero_data = product_update.model_dump(exclude_unset=True)
-    product_db.sqlmodel_update(hero_data)
-    session.add(product_db)
+    # Add OrderDetail
+    detail = OrderDetail(**order_in.detail.model_dump(), order_id=order.id)
+    session.add(detail)
     await session.commit()
-    await session.refresh(product_db)
-    return product_db
+    await session.refresh(detail)
+
+    # Add OrderProductLinks
+    for link in order_in.product_links:
+        opl = OrderProductLink(
+            order_id=order.id, product_id=link.product_id, quantity=link.quantity
+        )
+        session.add(opl)
+    await session.commit()
+    await session.refresh(order)
+    await session.refresh(detail)
+    return order
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete(
-    id: uuid.UUID,
-    session: Annotated[AsyncSession, Depends(get_session)],
+# READ Order (anyone)
+@router.get("/{order_id}", response_model=OrderRead)
+async def get_order(
+    order_id: uuid.UUID, session: Annotated[AsyncSession, Depends(get_session)]
 ):
-    product_db = await session.get(Product, id)
-
-    if product_db:
-        await session.delete(product_db)
-        await session.commit()
-    else:
-        raise HTTPException(status_code=404, detail=f"Task with id {id} not found")
-
-    return None
+    order = await session.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
 
 
-@router.get("/", response_model=List[Product])
-async def read_list(
+# READ all Orders (anyone)
+@router.get("/", response_model=List[OrderRead])
+async def get_orders(
     session: Annotated[AsyncSession, Depends(get_session)],
     offset: int = 0,
-    limit: Annotated[int, Query(le=100)] = 100,
+    limit: int = 100,
 ):
-    results = await session.exec(select(Product).offset(offset).limit(limit))
+    result = await session.exec(select(Order).offset(offset).limit(limit))
+    return result.all()
 
-    return results.all()
 
-
-@router.post("/add-image/{id}")
-async def add_image(
-    id: uuid.UUID,
+# UPDATE Order (admin only)
+@router.put(
+    "/{order_id}", response_model=OrderRead, dependencies=[Depends(get_admin_user)]
+)
+async def update_order(
+    order_id: uuid.UUID,
+    order_in: OrderUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
-    file: UploadFile,
 ):
-    try:
-        # Проверяем, что файл является изображением
-        if not file.content_type.startswith("image/"):
-            return HTTPException(
-                status_code=400, detail={"message": "Файл не является изображением"}
-            )
-        product = await session.get(Product, id)
-
-        # Check if id exists. If not, return 404 not found response
-        if not product:
-            raise HTTPException(
-                status_code=404, detail=f"Product with id {id} not found"
-            )
-
-        UPLOAD_DIR = "static/products"
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-        # Генерируем путь для сохранения
-        file_location = os.path.join(UPLOAD_DIR, file.filename)
-
-        # Сохраняем файл
-        with open(file_location, "wb+") as file_object:
-            file_object.write(await file.read())
-        product.sqlmodel_update(
-            {"images": product.images + [f"{settings.SERVER_HOST}/{file_location}"]}
+    order = await session.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order_in.detail:
+        detail = await session.exec(
+            select(OrderDetail).where(OrderDetail.order_id == order_id)
         )
-        session.add(product)
-        await session.commit()
-        await session.refresh(product)
-        return product
-
-    except Exception as e:
-        return HTTPException(
-            status_code=500, detail={"message": f"Произошла ошибка: {str(e)}"}
+        detail = detail.first()
+        if detail:
+            for k, v in order_in.detail.model_dump(exclude_unset=True).items():
+                setattr(detail, k, v)
+            session.add(detail)
+        else:
+            new_detail = OrderDetail(**order_in.detail.model_dump(), order_id=order_id)
+            session.add(new_detail)
+    if order_in.product_links:
+        # Remove old links
+        await session.exec(
+            select(OrderProductLink)
+            .where(OrderProductLink.order_id == order_id)
+            .delete()
         )
+        # Add new links
+        for link in order_in.product_links:
+            opl = OrderProductLink(
+                order_id=order_id, product_id=link.product_id, quantity=link.quantity
+            )
+            session.add(opl)
+    session.add(order)
+    await session.commit()
+    await session.refresh(order)
+    return order
+
+
+# DELETE Order (admin only)
+@router.delete(
+    "/{order_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_admin_user)],
+)
+async def delete_order(
+    order_id: uuid.UUID, session: Annotated[AsyncSession, Depends(get_session)]
+):
+    order = await session.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    await session.delete(order)
+    await session.commit()
+    return None

@@ -2,6 +2,7 @@ from typing import List
 import uuid
 from decimal import Decimal
 from sqlmodel import Field, SQLModel
+from sqlalchemy import Column, JSON
 
 
 class Product(SQLModel, table=True):
@@ -11,4 +12,4 @@ class Product(SQLModel, table=True):
     rub_price: Decimal = Field(
         title="Цена товара в рублях", max_digits=12, decimal_places=2, gt=0
     )
-    images: List[str] = Field(title="Изображения", default_factory=list)
+    images: list[str] = Field(default_factory=list, sa_column=Column(JSON))

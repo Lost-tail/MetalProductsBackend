@@ -1,17 +1,68 @@
 from decimal import Decimal
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator, validator, EmailStr
+import uuid
 
 
-class ProductCreate(BaseModel):
-    name: str
-    description: Optional[str]
-    rub_price: Decimal
-    images: Optional[List[str]]
+class OrderDetailBase(BaseModel):
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    first_name: str
+    last_name: str
+    address: str
+    comment: Optional[str] = ""
+
+    @model_validator(mode="after")
+    def email_or_phone_required(self, values):
+        email, phone = values.get("email"), values.get("phone")
+        if not email and not phone:
+            raise ValueError("Either email or phone must be provided")
+        return values
 
 
-class ProductUpdate(BaseModel):
-    name: Optional[str]
-    description: Optional[str]
-    rub_price: Optional[Decimal]
-    images: Optional[List[str]]
+class OrderDetailCreate(OrderDetailBase):
+    pass
+
+
+class OrderDetailRead(OrderDetailBase):
+    id: uuid.UUID
+    order_id: uuid.UUID
+
+    class Config:
+        from_attributes = True
+
+
+class OrderProductLinkBase(BaseModel):
+    product_id: uuid.UUID
+    quantity: int
+
+
+class OrderProductLinkCreate(OrderProductLinkBase):
+    pass
+
+
+class OrderProductLinkRead(OrderProductLinkBase):
+    pass
+
+
+class OrderBase(BaseModel):
+    pass
+
+
+class OrderCreate(OrderBase):
+    product_links: List[OrderProductLinkCreate]
+    detail: OrderDetailCreate
+
+
+class OrderRead(OrderBase):
+    id: uuid.UUID
+    product_links: List[OrderProductLinkRead]
+    detail: Optional[OrderDetailRead]
+
+    class Config:
+        from_attributes = True
+
+
+class OrderUpdate(OrderBase):
+    product_links: Optional[List[OrderProductLinkCreate]] = None
+    detail: Optional[OrderDetailCreate] = None

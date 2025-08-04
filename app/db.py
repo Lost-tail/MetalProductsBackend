@@ -6,7 +6,9 @@ from sqlalchemy.orm import sessionmaker
 
 from app.settings import settings
 
-engine = AsyncEngine(create_engine(settings.POSTGRES_URL, echo=True, future=True))
+engine = AsyncEngine(
+    create_engine(settings.POSTGRES_URL.unicode_string(), echo=True, future=True)
+)
 
 
 async def get_session() -> AsyncSession:

@@ -9,7 +9,7 @@ from app.settings import settings
 from .models import Product
 from . import schemas
 
-router = APIRouter(prefix="products")
+router = APIRouter(prefix="/products", tags=["products"])
 
 
 @router.post("/", response_model=Product, status_code=status.HTTP_201_CREATED)
