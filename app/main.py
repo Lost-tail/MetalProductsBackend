@@ -23,8 +23,10 @@ app = FastAPI(
     title="Metal products",
     description="Website for selling metal products",
     lifespan=lifespan,
+    openapi_url="/api/openapi.json",
+    docs_url="/api/docs",
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
-app.include_router(products_router)
-app.include_router(orders_router)
-app.include_router(users_router)
+app.include_router(products_router, prefix="/api")
+app.include_router(orders_router, prefix="/api")
+app.include_router(users_router, prefix="/api")

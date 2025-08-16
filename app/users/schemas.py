@@ -1,3 +1,4 @@
+import uuid
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
@@ -19,7 +20,7 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(UserBase):
-    id: int
+    id: uuid.UUID
     role: UserRole
     created_at: datetime
     updated_at: datetime

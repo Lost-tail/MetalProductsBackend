@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from app.db import get_session
 from app.users.models import User, UserRole
@@ -49,7 +51,7 @@ async def login(user_data: UserLogin, session: Session = Depends(get_session)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token_expires = timedelta(minutes=30)
+    access_token_expires = timedelta(minutes=60)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
@@ -67,15 +69,17 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 async def get_users(
     current_user: User = Depends(get_admin_user),
     session: Session = Depends(get_session),
+    offset: int = 0,
+    limit: Annotated[int, Query(le=100)] = 100,
 ):
     """Получение списка всех пользователей (только для админов)"""
-    users = session.exec(select(User)).all()
+    users = session.exec(select(User).offset(offset).limit(limit)).all()
     return users
 
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
-    user_id: int,
+    user_id: uuid.UUID,
     current_user: User = Depends(get_admin_user),
     session: Session = Depends(get_session),
 ):
@@ -90,7 +94,7 @@ async def get_user(
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(
-    user_id: int,
+    user_id: uuid.UUID,
     user_data: UserUpdate,
     current_user: User = Depends(get_admin_user),
     session: Session = Depends(get_session),
@@ -132,7 +136,7 @@ async def update_user(
 
 @router.delete("/{user_id}")
 async def delete_user(
-    user_id: int,
+    user_id: uuid.UUID,
     current_user: User = Depends(get_admin_user),
     session: Session = Depends(get_session),
 ):
