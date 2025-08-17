@@ -23,7 +23,7 @@ async def get_current_user(
     if email is None:
         raise credentials_exception
 
-    user = session.exec(select(User).where(User.email == email)).first()
+    user = (await session.exec(select(User).where(User.email == email))).first()
     if user is None:
         raise credentials_exception
 

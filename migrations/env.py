@@ -64,7 +64,10 @@ def run_migrations_online() -> None:
     import os
 
     url_tokens = {
-        "ALEMBIC_DATABASE_URL": os.getenv("ALEMBIC_DATABASE_URL", ""),
+        "ALEMBIC_DATABASE_URL": os.getenv(
+            "ALEMBIC_DATABASE_URL",
+            "postgresql+psycopg2://postgres:doKLIbShImybgTPfNmyL9ds0GLlIhptd@localhost:5432/metal_products",
+        ),
     }
 
     url = config.get_main_option("sqlalchemy.url")

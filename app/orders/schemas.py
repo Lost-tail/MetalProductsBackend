@@ -1,7 +1,10 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
-from pydantic import BaseModel, model_validator, validator, EmailStr
+from pydantic import BaseModel, model_validator, EmailStr
 import uuid
+
+from .models import OrderStatus
 
 
 class OrderDetailBase(BaseModel):
@@ -56,8 +59,11 @@ class OrderCreate(OrderBase):
 
 class OrderRead(OrderBase):
     id: uuid.UUID
+    status: OrderStatus
     product_links: List[OrderProductLinkRead]
     detail: Optional[OrderDetailRead]
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -66,3 +72,4 @@ class OrderRead(OrderBase):
 class OrderUpdate(OrderBase):
     product_links: Optional[List[OrderProductLinkCreate]] = None
     detail: Optional[OrderDetailCreate] = None
+    status: Optional[OrderStatus] = None

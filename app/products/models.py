@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 import uuid
 from decimal import Decimal
@@ -12,4 +13,7 @@ class Product(SQLModel, table=True):
     rub_price: Decimal = Field(
         title="Цена товара в рублях", max_digits=12, decimal_places=2, gt=0
     )
+    is_active: bool = Field(title="Актвен?", default=True)
     images: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)

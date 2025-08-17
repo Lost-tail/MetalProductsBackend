@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
+import os
 from typing import Optional
+from fastapi import UploadFile
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from app.settings import settings
@@ -46,3 +48,22 @@ def verify_token(token: str) -> Optional[str]:
         return email
     except JWTError:
         return None
+
+
+async def download_file(file: UploadFile, dir: str) -> str:
+    os.makedirs(dir, exist_ok=True)
+
+    # Генерируем путь для сохранения
+    file_location = os.path.join(dir, file.filename)
+
+    # Сохраняем файл
+    with open(file_location, "wb+") as file_object:
+        file_object.write(await file.read())
+    return file_location
+
+
+async def remove_file(path: str) -> str:
+    try:
+        os.remove(path.replace(f"{settings.SERVER_HOST}/", ""))
+    except Exception as e:
+        print(f"Error when deleting file {path}\n{e}")

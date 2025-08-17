@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi_limiter import FastAPILimiter
 import redis.asyncio as redis
@@ -26,7 +27,17 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     docs_url="/api/docs",
 )
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:9000",
+        "http://127.0.0.1:9000",
+    ],  # Specific allowed origin
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+app.mount("/api/static", StaticFiles(directory="static"), name="static")
 app.include_router(products_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
 app.include_router(users_router, prefix="/api")

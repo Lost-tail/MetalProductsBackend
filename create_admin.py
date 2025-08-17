@@ -18,7 +18,9 @@ async def create_admin():
 
     async with async_session() as session:
         # Проверяем, есть ли уже админ
-        admin = session.exec(select(User).where(User.role == UserRole.ADMIN)).first()
+        admin = (
+            await session.exec(select(User).where(User.role == UserRole.ADMIN))
+        ).first()
         if admin:
             print("Администратор уже существует!")
             return
@@ -36,8 +38,8 @@ async def create_admin():
         )
 
         session.add(admin_user)
-        session.commit()
-        session.refresh(admin_user)
+        await session.commit()
+        await session.refresh(admin_user)
 
         print(f"Администратор {admin_email} успешно создан!")
 

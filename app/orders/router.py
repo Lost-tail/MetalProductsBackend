@@ -1,9 +1,11 @@
+from datetime import datetime
 import os
-from typing import Annotated, List
+from typing import Annotated, List, Optional
+from typing_extensions import Literal
 import uuid
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, status
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import select
+from sqlmodel import asc, desc, select
 from app.db import get_session
 from app.settings import settings
 from .models import Product
@@ -67,13 +69,20 @@ async def get_orders(
     session: Annotated[AsyncSession, Depends(get_session)],
     offset: int = 0,
     limit: int = 100,
+    sort_by: Optional[Literal["id", "status", "created_at"]] = "id",
+    order: Optional[Literal["asc", "desc"]] = "desc",
 ):
-    result = await session.exec(select(Order).offset(offset).limit(limit))
+    query = select(Order).offset(offset).limit(limit)
+    if order == "asc":
+        query = query.order_by(asc(sort_by))
+    else:
+        query = query.order_by(desc(sort_by))
+    result = await session.exec(query)
     return result.all()
 
 
 # UPDATE Order (admin only)
-@router.put(
+@router.patch(
     "/{order_id}", response_model=OrderRead, dependencies=[Depends(get_admin_user)]
 )
 async def update_order(
@@ -109,6 +118,7 @@ async def update_order(
                 order_id=order_id, product_id=link.product_id, quantity=link.quantity
             )
             session.add(opl)
+    order.updated_at = datetime.now()
     session.add(order)
     await session.commit()
     await session.refresh(order)

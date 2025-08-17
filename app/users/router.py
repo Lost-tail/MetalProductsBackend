@@ -17,8 +17,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 async def register(user_data: UserCreate, session: Session = Depends(get_session)):
     """Регистрация нового пользователя"""
     # Проверяем, существует ли пользователь с таким email
-    existing_user = session.exec(
-        select(User).where(User.email == user_data.email)
+    existing_user = (
+        await session.exec(select(User).where(User.email == user_data.email))
     ).first()
     if existing_user:
         raise HTTPException(
@@ -34,8 +34,8 @@ async def register(user_data: UserCreate, session: Session = Depends(get_session
     )
 
     session.add(user)
-    session.commit()
-    session.refresh(user)
+    await session.commit()
+    await session.refresh(user)
 
     return user
 
@@ -43,7 +43,10 @@ async def register(user_data: UserCreate, session: Session = Depends(get_session
 @router.post("/login", response_model=Token)
 async def login(user_data: UserLogin, session: Session = Depends(get_session)):
     """Вход пользователя"""
-    user = session.exec(select(User).where(User.email == user_data.email)).first()
+    user = (
+        await session.exec(select(User).where(User.email == user_data.email))
+    ).first()
+    print(user)
     if not user or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -73,7 +76,7 @@ async def get_users(
     limit: Annotated[int, Query(le=100)] = 100,
 ):
     """Получение списка всех пользователей (только для админов)"""
-    users = session.exec(select(User).offset(offset).limit(limit)).all()
+    users = await session.exec(select(User).offset(offset).limit(limit)).all()
     return users
 
 
@@ -84,7 +87,7 @@ async def get_user(
     session: Session = Depends(get_session),
 ):
     """Получение пользователя по ID (только для админов)"""
-    user = session.exec(select(User).where(User.id == user_id)).first()
+    user = (await session.exec(select(User).where(User.id == user_id))).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -92,7 +95,7 @@ async def get_user(
     return user
 
 
-@router.put("/{user_id}", response_model=UserResponse)
+@router.patch("/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: uuid.UUID,
     user_data: UserUpdate,
@@ -100,7 +103,7 @@ async def update_user(
     session: Session = Depends(get_session),
 ):
     """Обновление пользователя (только для админов)"""
-    user = session.exec(select(User).where(User.id == user_id)).first()
+    user = await session.exec(select(User).where(User.id == user_id))
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -109,9 +112,9 @@ async def update_user(
     # Обновляем поля
     if user_data.email is not None:
         # Проверяем, что email не занят другим пользователем
-        existing_user = session.exec(
+        existing_user = await session.exec(
             select(User).where(User.email == user_data.email, User.id != user_id)
-        ).first()
+        )
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -128,8 +131,8 @@ async def update_user(
     user.updated_at = datetime.now()
 
     session.add(user)
-    session.commit()
-    session.refresh(user)
+    await session.commit()
+    await session.refresh(user)
 
     return user
 
@@ -141,13 +144,13 @@ async def delete_user(
     session: Session = Depends(get_session),
 ):
     """Удаление пользователя (только для админов)"""
-    user = session.exec(select(User).where(User.id == user_id)).first()
+    user = await session.exec(select(User).where(User.id == user_id))
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    session.delete(user)
-    session.commit()
+    await session.delete(user)
+    await session.commit()
 
     return {"message": "User deleted successfully"}

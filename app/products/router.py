@@ -1,9 +1,11 @@
+from datetime import datetime
 import os
-from typing import Annotated, List
+from typing import Annotated, List, Literal, Optional
 import uuid
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, status
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import select
+from sqlmodel import asc, desc, select
+from app.auth.utils import download_file, remove_file
 from app.db import get_session
 from app.settings import settings
 from .models import Product
@@ -17,7 +19,7 @@ async def create(
     product: schemas.ProductCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    product_db = Product(product)
+    product_db = Product(**product.model_dump())
     session.add(product_db)
     await session.commit()
     await session.refresh(product_db)
@@ -38,7 +40,7 @@ async def read(
     return product
 
 
-@router.put("/{id}", response_model=Product)
+@router.patch("/{id}", response_model=Product)
 async def update(
     id: uuid.UUID,
     product_update: schemas.ProductUpdate,
@@ -48,8 +50,14 @@ async def update(
     if not product_db:
         raise HTTPException(status_code=404, detail=f"Product with id {id} not found")
 
-    hero_data = product_update.model_dump(exclude_unset=True)
-    product_db.sqlmodel_update(hero_data)
+    update_data = product_update.model_dump(exclude_unset=True)
+    if update_data.get("images"):
+        for image in product_db.images:
+            if image not in update_data["images"]:
+                await remove_file(image)
+    for field, value in update_data.items():
+        setattr(product_db, field, value)
+    product_db.updated_at = datetime.now()
     session.add(product_db)
     await session.commit()
     await session.refresh(product_db)
@@ -76,9 +84,16 @@ async def delete(
 async def read_list(
     session: Annotated[AsyncSession, Depends(get_session)],
     offset: int = 0,
-    limit: Annotated[int, Query(le=100)] = 100,
+    limit: Annotated[int, Query()] = 100,
+    sort_by: Optional[Literal["id", "name", "rub_price", "created_at"]] = "id",
+    order: Optional[Literal["asc", "desc"]] = "desc",
 ):
-    results = await session.exec(select(Product).offset(offset).limit(limit))
+    query = select(Product).offset(offset).limit(limit)
+    if order == "asc":
+        query = query.order_by(asc(sort_by))
+    else:
+        query = query.order_by(desc(sort_by))
+    results = await session.exec(query)
 
     return results.all()
 
@@ -104,17 +119,9 @@ async def add_image(
             )
 
         UPLOAD_DIR = "static/products"
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-
         # Генерируем путь для сохранения
-        file_location = os.path.join(UPLOAD_DIR, file.filename)
-
-        # Сохраняем файл
-        with open(file_location, "wb+") as file_object:
-            file_object.write(await file.read())
-        product.sqlmodel_update(
-            {"images": product.images + [f"{settings.SERVER_HOST}/{file_location}"]}
-        )
+        file_location = await download_file(file, UPLOAD_DIR)
+        product.images = product.images + [f"{settings.SERVER_HOST}/{file_location}"]
         session.add(product)
         await session.commit()
         await session.refresh(product)
