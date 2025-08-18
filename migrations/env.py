@@ -66,7 +66,7 @@ def run_migrations_online() -> None:
     url_tokens = {
         "ALEMBIC_DATABASE_URL": os.getenv(
             "ALEMBIC_DATABASE_URL",
-            "postgresql+psycopg2://postgres:doKLIbShImybgTPfNmyL9ds0GLlIhptd@localhost:5432/metal_products",
+            "postgresql://metal_user:metal_pass@localhost:5432/metal_products",
         ),
     }
 
