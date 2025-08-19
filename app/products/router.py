@@ -121,7 +121,9 @@ async def add_image(
         UPLOAD_DIR = "static/products"
         # Генерируем путь для сохранения
         file_location = await download_file(file, UPLOAD_DIR)
-        product.images = product.images + [f"{settings.SERVER_HOST}api/{file_location}"]
+        product.images = list(
+            set(product.images + [f"{settings.SERVER_HOST}api/{file_location}"])
+        )
         session.add(product)
         await session.commit()
         await session.refresh(product)
