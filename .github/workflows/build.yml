@@ -19,5 +19,5 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: backend:latest
+          tags: arbitraryusername43/metal_products:backend-${{ github.sha }}
           platforms: linux/amd64,linux/arm64
