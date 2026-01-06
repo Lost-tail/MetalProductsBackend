@@ -9,6 +9,7 @@ from app.settings import settings
 from app.products.router import router as products_router
 from app.users.router import router as users_router
 from app.orders.router import router as orders_router
+from app.categories.router import router as categories_router
 
 
 @asynccontextmanager
@@ -32,6 +33,9 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:9000",
         "http://127.0.0.1:9000",
+        "http://localhost:9001",
+        "http://127.0.0.1:9001",
+        "http://localhost:5173",
     ],  # Specific allowed origin
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
@@ -41,3 +45,4 @@ app.mount("/api/static", StaticFiles(directory="static"), name="static")
 app.include_router(products_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
 app.include_router(users_router, prefix="/api")
+app.include_router(categories_router, prefix="/api")

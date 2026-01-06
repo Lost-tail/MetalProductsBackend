@@ -11,16 +11,31 @@ class OrderDetailBase(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     first_name: str
-    last_name: str
-    address: str
+    address: Optional[str] = None
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
     comment: Optional[str] = ""
 
     @model_validator(mode="after")
     def email_or_phone_required(self, values):
-        email, phone = values.get("email"), values.get("phone")
+        email, phone = self.email, self.phone
         if not email and not phone:
             raise ValueError("Either email or phone must be provided")
-        return values
+        return self
+
+    @model_validator(mode="after")
+    def coordinates_validation(self, values):
+        if not self.latitude or not self.longitude:
+            return self
+        try:
+            latitude, longitude = float(self.latitude), float(self.longitude)
+        except ValueError:
+            raise ValueError("Latitude and Longitude must be valid float numbers")
+        if not -180 <= longitude <= 180:
+            raise ValueError(f"Longitude {longitude} must be between -180 and 180")
+        if not -90 <= latitude <= 90:
+            raise ValueError(f"Latitude {latitude} must be between -90 and 90")
+        return self
 
 
 class OrderDetailCreate(OrderDetailBase):
@@ -30,6 +45,7 @@ class OrderDetailCreate(OrderDetailBase):
 class OrderDetailRead(OrderDetailBase):
     id: uuid.UUID
     order_id: uuid.UUID
+    delivery_price: Optional[Decimal] = None
 
     class Config:
         from_attributes = True
@@ -70,6 +86,16 @@ class OrderRead(OrderBase):
 
 
 class OrderUpdate(OrderBase):
-    product_links: Optional[List[OrderProductLinkCreate]] = None
-    detail: Optional[OrderDetailCreate] = None
+    # product_links: Optional[List[OrderProductLinkCreate]] = None
+    # detail: Optional[OrderDetailCreate] = None
     status: Optional[OrderStatus] = None
+
+
+class RequestForCall(BaseModel):
+    phone: str
+    fio: str
+    comment: Optional[str] = ""
+
+
+class DeliveryPrice(BaseModel):
+    delivery_price: Decimal

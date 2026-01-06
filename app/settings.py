@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     SERVER_HOST: AnyHttpUrl
     POSTGRES_URL: PostgresDsn
     REDIS_URL: RedisDsn
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    YANDEX_DELIVERY_API_KEY: str = ""
+    TG_BOT_KEY: str = ""
+    TG_CHAT_ID: str = ""
 
     class Config:
         case_sensitive = True

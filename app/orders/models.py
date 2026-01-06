@@ -10,6 +10,8 @@ from app.products.models import Product
 class OrderStatus(str, Enum):
     CREATED = "created"
     CANCELLED = "cancelled"
+    PAID = "paid"
+    ERROR = "error"
     SUCCESS = "success"
 
 
@@ -28,8 +30,16 @@ class OrderDetail(SQLModel, table=True):
     email: str | None = Field(default=None, index=True)
     phone: str | None = Field(default=None, index=True)
     first_name: str | None = Field(default=None)
-    last_name: str | None = Field(default=None)
     address: str | None = Field(default=None)
+    latitude: str | None = Field(default=None)
+    longitude: str | None = Field(default=None)
+    delivery_price: Decimal = Field(
+        title="Цена доставки в рублях",
+        max_digits=12,
+        decimal_places=2,
+        ge=0,
+        default=0,
+    )
     comment: str | None = Field(default=None)
 
     order: "Order" = Relationship(back_populates="detail")
@@ -40,9 +50,17 @@ class Order(SQLModel, table=True):
     status: OrderStatus = Field(
         default=OrderStatus.CREATED,
     )
-    product_links: list[OrderProductLink] = Relationship(back_populates="order")
+    product_links: list[OrderProductLink] = Relationship(
+        back_populates="order",
+        sa_relationship_kwargs={"cascade": "all, delete", "passive_deletes": True},
+    )
     detail: OrderDetail = Relationship(
-        back_populates="order", sa_relationship_kwargs={"uselist": False}
+        back_populates="order",
+        sa_relationship_kwargs={
+            "uselist": False,
+            "cascade": "all, delete-orphan",
+            "passive_deletes": True,
+        },
     )
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
