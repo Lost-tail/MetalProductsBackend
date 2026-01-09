@@ -3,46 +3,50 @@ version: "3.9"
 services:
   postgres:
     image: postgres:15.3-alpine3.18
+    hostname: postgres
+    container_name: postgres
     restart: always
-    env_file:
-      - .env
+    networks:
+      - metal_products
     ports:
-      - "5432:5432"
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7.2.4-alpine
+    hostname: redis
+    container_name: redis
     restart: always
-    env_file:
-      - .env
+    networks:
+      - metal_products
     ports:
-      - "6379:6379"
+      - "6379"
     volumes:
       - redis_data:/data
 
   backend:
-    build: .
-    volumes:
-      - .:/app
+    restart: always
+    image: $IMAGE
     env_file:
-      - .env
+      - ./.env
+    hostname: backend
+    container_name: backend
+    ports:
+      - "8000"
+    networks:
+      - metal_products
+    volumes:
+      - static:/static
     depends_on:
       - postgres
       - redis
-    ports:
-      - "8000:8000"
-
-  # nginx:
-  #   image: nginx:1.25
-  #   restart: always
-  #   ports:
-  #     - "80:80"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
-  #   depends_on:
-  #     - backend
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  metal_products:
+    external: true
+    name: metal_products

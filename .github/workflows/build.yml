@@ -15,9 +15,22 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
         with:
-          push: true
-          tags: arbitraryusername43/metal_products:backend-${{ github.sha }}
-          platforms: linux/amd64,linux/arm64
+          token: ${{ secrets.DOPPLER_TOKEN }}
+      - name: Build and push
+        run: |
+          doppler run -- docker buildx build \
+            --push \
+            --tag arbitraryusername43/metal_products:backend-${{ github.sha }} \
+            --platform linux/amd64,linux/arm64 \
+            --cache-from type=registry,ref=arbitraryusername43/metal_products:backend-cache \
+            --cache-to type=registry,ref=arbitraryusername43/metal_products:backend-cache,mode=max \
+            .
+      - name: Upload image tag
+        run: echo "arbitraryusername43/metal_products:backend-${{ github.sha }}" > image-tag-backend.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-tag-backend
+          path: image-tag-backend.txt
