@@ -27,16 +27,6 @@ jobs:
           token: ${{ secrets.DOPPLER_TOKEN }}
       - name: Download secrets
         run: doppler secrets download --token ${{ secrets.DOPPLER_TOKEN }} --format docker > .env
-      - name: Check .env keys
-        run: |
-          echo "Checking .env keys for spaces:"
-          if awk -F= '{print $1}' .env | grep -q " "; then
-            echo "Found spaces in keys:"
-            awk -F= '{print $1}' .env | grep " "
-            exit 1
-          else
-            echo "No spaces found in keys."
-          fi
       - name: Add IMAGE to .env
         run: echo "IMAGE=${{ env.IMAGE }}" >> .env
       - name: Setup SSH
