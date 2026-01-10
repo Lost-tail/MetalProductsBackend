@@ -20,23 +20,13 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
       - name: Set IMAGE
-        run: echo "IMAGE=$(cat image-tag-backend.txt | xargs)" >> $GITHUB_ENV
+        run: echo "IMAGE=$(cat image-tag-backend.txt)" >> $GITHUB_ENV
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
         with:
           token: ${{ secrets.DOPPLER_TOKEN }}
       - name: Download secrets
-        run: doppler secrets download --token ${{ secrets.DOPPLER_TOKEN }} --format json | jq -r 'to_entries[] | "\(.key)=\(.value)"' > .env
-      - name: Check .env keys
-        run: |
-          echo "Checking .env keys for spaces:"
-          if awk -F= '{print $1}' .env | grep -q " "; then
-            echo "Found spaces in keys:"
-            awk -F= '{print $1}' .env | grep " "
-            exit 1
-          else
-            echo "No spaces found in keys."
-          fi
+        run: doppler secrets download --token ${{ secrets.DOPPLER_TOKEN }} --no-file --format docker > .env
       - name: Add IMAGE to .env
         run: echo "IMAGE=${{ env.IMAGE }}" >> .env
       - name: Setup SSH
