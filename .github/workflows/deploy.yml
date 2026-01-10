@@ -20,7 +20,7 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
       - name: Set IMAGE
-        run: echo "IMAGE=$(cat image-tag-backend.txt)" >> $GITHUB_ENV
+        run: echo "IMAGE=$(cat image-tag-backend.txt | xargs)" >> $GITHUB_ENV
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
         with:
