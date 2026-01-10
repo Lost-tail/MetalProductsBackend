@@ -48,6 +48,7 @@ volumes:
   postgres_data:
   redis_data:
   static:
+    external: true
 
 networks:
   metal_products:
