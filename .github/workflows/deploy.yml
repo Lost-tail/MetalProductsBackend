@@ -38,13 +38,12 @@ jobs:
       - name: Deploy to server
         run: |
           docker login -u ${{ vars.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+          export DOCKER_HOST=ssh://${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}
           docker compose \
-            -H ssh://${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
             --file docker-compose.yml \
             --env-file .env \
             pull
           docker compose \
-            -H ssh://${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
             --file docker-compose.yml \
             --env-file .env \
             up -d
