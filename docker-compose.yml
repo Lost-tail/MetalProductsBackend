@@ -6,6 +6,8 @@ services:
     hostname: postgres
     container_name: postgres
     restart: always
+    env_file:
+      - ./.env
     networks:
       - metal_products
     ports:
