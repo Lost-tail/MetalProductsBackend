@@ -26,7 +26,7 @@ jobs:
         with:
           token: ${{ secrets.DOPPLER_TOKEN }}
       - name: Download secrets
-        run: doppler secrets download --token ${{ secrets.DOPPLER_TOKEN }} --format env > .env
+        run: doppler secrets download --token ${{ secrets.DOPPLER_TOKEN }} --format docker > .env
       - name: Check .env keys
         run: |
           echo "Checking .env keys for spaces:"
