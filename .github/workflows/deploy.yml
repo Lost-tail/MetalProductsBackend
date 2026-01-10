@@ -28,7 +28,7 @@ jobs:
       - name: Download secrets
         run: doppler secrets download --token ${{ secrets.DOPPLER_TOKEN }} --format env > .env
       - name: Filter .env
-        run: cat image-tag-backend.txt
+        run: cat .env
       - name: Check .env keys
         run: |
           echo "Checking .env keys for spaces:"
