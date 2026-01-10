@@ -21,7 +21,7 @@ jobs:
           token: ${{ secrets.DOPPLER_TOKEN }}
       - name: Build and push
         run: |
-          doppler run -- docker buildx build \
+          doppler run --token ${{ secrets.DOPPLER_TOKEN }} -- docker buildx build \
             --push \
             --tag arbitraryusername43/metal_products:backend-${{ github.sha }} \
             --platform linux/amd64,linux/arm64 \
