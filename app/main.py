@@ -25,8 +25,9 @@ app = FastAPI(
     title="Metal products",
     description="Website for selling metal products",
     lifespan=lifespan,
-    openapi_url="/api/openapi.json",
-    docs_url="/api/docs",
+    openapi_url="/api/openapi.json" if settings.DEBUG else None,
+    docs_url="/api/docs" if settings.DEBUG else None,
+    redoc_url="/api/redoc" if settings.DEBUG else None,
 )
 app.add_middleware(
     CORSMiddleware,

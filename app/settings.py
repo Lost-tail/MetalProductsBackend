@@ -12,10 +12,7 @@ class Settings(BaseSettings):
     YANDEX_DELIVERY_API_KEY: str = ""
     TG_BOT_KEY: str = ""
     TG_CHAT_ID: str = ""
-
-    class Config:
-        case_sensitive = True
-        extra = "ignore"
+    DEBUG: bool = False
 
 
 settings = Settings(_env_file=".env", _env_file_encoding="utf-8")
