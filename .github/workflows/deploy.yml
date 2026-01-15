@@ -45,6 +45,9 @@ jobs:
             pull
           docker compose \
             --file docker-compose.yml \
+            down
+          docker compose \
+            --file docker-compose.yml \
             --env-file .env \
             up -d
       - name: Cleanup

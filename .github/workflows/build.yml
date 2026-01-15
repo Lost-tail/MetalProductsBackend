@@ -28,7 +28,7 @@ jobs:
             --tag arbitraryusername43/metal_products:backend-${{ github.sha }} \
             --platform linux/amd64,linux/arm64 \
             --cache-from type=registry,ref=arbitraryusername43/metal_products:backend-cache \
-            --cache-to type=registry,ref=arbitraryusername43/metal_products:backend-cache,mode=max \
+            --cache-to type=registry,ref=arbitraryusername43/metal_products:backend-cache \
             .
       - name: Upload image tag
         run: echo "arbitraryusername43/metal_products:backend-${{ github.sha }}" > image-tag-backend.txt
