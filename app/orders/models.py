@@ -6,7 +6,7 @@ from decimal import Decimal
 from sqlalchemy import Column, JSON
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.orders.schemas import MerchantData
+# from app.orders.schemas import MerchantData
 from app.products.models import Product
 
 
@@ -49,6 +49,8 @@ class OrderDetail(SQLModel, table=True):
 
 
 class Order(SQLModel, table=True):
+    from app.orders.schemas import MerchantData
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     status: OrderStatus = Field(
         default=OrderStatus.CREATED,
