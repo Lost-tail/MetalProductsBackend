@@ -1,9 +1,12 @@
 from datetime import datetime
+from typing import Optional
 import uuid
 from enum import Enum
 from decimal import Decimal
+from sqlalchemy import Column, JSON
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.orders.schemas import MerchantData
 from app.products.models import Product
 
 
@@ -50,6 +53,20 @@ class Order(SQLModel, table=True):
     status: OrderStatus = Field(
         default=OrderStatus.CREATED,
     )
+    amount: Decimal = Field(
+        title="Сумма заявки",
+        max_digits=12,
+        decimal_places=2,
+        ge=0,
+        default=0,
+    )
+    amount_paid: Decimal = Field(
+        title="Оплачено",
+        max_digits=12,
+        decimal_places=2,
+        ge=0,
+        default=0,
+    )
     product_links: list[OrderProductLink] = Relationship(
         back_populates="order",
         sa_relationship_kwargs={"cascade": "all, delete", "passive_deletes": True},
@@ -62,5 +79,12 @@ class Order(SQLModel, table=True):
             "passive_deletes": True,
         },
     )
+    external_id: str | None = Field(default=None)
+    payment_data: MerchantData = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+
+    def get_prepayment_amount(self) -> Decimal:
+        return (
+            self.amount + (self.detail.delivery_price if self.detail else Decimal())
+        ) * Decimal("0.3")

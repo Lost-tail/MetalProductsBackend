@@ -50,5 +50,6 @@ jobs:
             --file docker-compose.yml \
             --env-file .env \
             up -d
+          docker -H ssh://${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} exec loadbalancer nginx -s reload || true
       - name: Cleanup
         run: rm .env

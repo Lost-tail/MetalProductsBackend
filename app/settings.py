@@ -12,7 +12,11 @@ class Settings(BaseSettings):
     YANDEX_DELIVERY_API_KEY: str = ""
     TG_BOT_KEY: str = ""
     TG_CHAT_ID: str = ""
+    TG_LOG_CHAT_ID: str = ""
     DEBUG: bool = False
+    PAYKEEPER_USER: str = ""
+    PAYKEEPER_PASSWORD: str = ""
+    PAYKEEPER_SECRET: str = ""
 
 
 settings = Settings(_env_file=".env", _env_file_encoding="utf-8")

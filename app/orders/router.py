@@ -92,6 +92,7 @@ async def create_order(
         await session.commit()
     await session.refresh(order)
     await session.refresh(order, ["product_links", "detail"])
+    order.prepayment_amount = order.get_prepayment_amount()
     return order
 
 
