@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Type
 import uuid
 from enum import Enum
 from decimal import Decimal
@@ -49,8 +49,6 @@ class OrderDetail(SQLModel, table=True):
 
 
 class Order(SQLModel, table=True):
-    from app.orders.schemas import MerchantData
-
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     status: OrderStatus = Field(
         default=OrderStatus.CREATED,
@@ -82,7 +80,7 @@ class Order(SQLModel, table=True):
         },
     )
     external_id: str | None = Field(default=None)
-    payment_data: MerchantData = Field(default_factory=dict, sa_column=Column(JSON))
+    payment_data: dict = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
