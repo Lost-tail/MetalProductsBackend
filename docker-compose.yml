@@ -40,6 +40,7 @@ services:
       - metal_products
     volumes:
       - static:/static
+      - backend:/shared
     depends_on:
       - postgres
       - redis
@@ -47,7 +48,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  static:
+  backend:
     external: true
 
 networks:
