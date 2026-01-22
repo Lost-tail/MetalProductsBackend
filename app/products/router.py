@@ -120,12 +120,13 @@ async def read_list_product(
     else:
         query = query.order_by(desc(sort_by))
     results = await session.exec(query)
+    results.all()
     for product in results:
         if product.images:
             product.images = [
                 f"{settings.SERVER_HOST}{image}" for image in product.images
             ]
-    return results.all()
+    return results
 
 
 @router.post("/add-image/{id}", dependencies=[Depends(get_admin_user)])
