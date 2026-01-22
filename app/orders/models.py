@@ -59,6 +59,7 @@ class Order(SQLModel, table=True):
         decimal_places=2,
         ge=0,
         default=0,
+        nullable=True,
     )
     amount_paid: Decimal = Field(
         title="Оплачено",
@@ -66,6 +67,7 @@ class Order(SQLModel, table=True):
         decimal_places=2,
         ge=0,
         default=0,
+        nullable=True,
     )
     product_links: list[OrderProductLink] = Relationship(
         back_populates="order",
