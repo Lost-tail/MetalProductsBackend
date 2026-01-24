@@ -1,22 +1,17 @@
-from abc import ABC, abstractmethod
 from decimal import Decimal
-from typing import Awaitable, List, Literal, Optional, Type
+from typing import Awaitable, Type
 import base64
 import hashlib
-
-import aiohttp
-from fastapi import Request
 
 from app.settings import settings
 from app.orders.models import Order, OrderStatus
 from app.orders.schemas import MerchantData, ProviderOrderInfo, SerializedResponse
-from app.services.logger import logger
 from app.services.payment_systems.base import ProviderClientBase
 from app.services.redis import redis_client
 
 
 class Paykeeper(ProviderClientBase):
-    URL = "https://237200454513.ru/"
+    URL = "https://237200454513.server.paykeeper.ru/"
     USER = settings.PAYKEEPER_USER
     PASSWORD = settings.PAYKEEPER_PASSWORD
     SECRET = settings.PAYKEEPER_SECRET
@@ -42,7 +37,7 @@ class Paykeeper(ProviderClientBase):
             "Authorization": f"Basic {basic_auth}",
         }
         if method == "POST":
-            token = redis_client.get("paykeeper_token")
+            token = await redis_client.get("paykeeper_token")
             if not token:
                 response = await self._request(
                     f"{self.URL}info/settings/token/",
@@ -52,7 +47,7 @@ class Paykeeper(ProviderClientBase):
                 )
                 token = self._get_param(response.raw_data, "token")
                 if token:
-                    redis_client.set("paykeeper_token", token, 12 * 60 * 60)
+                    await redis_client.set("paykeeper_token", token, 12 * 60 * 60)
             if data:
                 data["token"] = token
         return await self._request(
@@ -66,7 +61,7 @@ class Paykeeper(ProviderClientBase):
 
     async def request_deposit(
         self, order: Type[Order]
-    ) -> Awaitable[SerializedResponse[ProviderOrderInfo]]:
+    ) -> SerializedResponse[ProviderOrderInfo]:
         "Запрос к платежке на создание депозита"
         resource = "change/invoice/preview/"
         body = {
@@ -107,7 +102,7 @@ class Paykeeper(ProviderClientBase):
 
     async def get_order_info(
         self, order: Order
-    ) -> Awaitable[SerializedResponse[ProviderOrderInfo]]:
+    ) -> SerializedResponse[ProviderOrderInfo]:
         "This method is used to get order status from merchant"
         if not order.external_id:
             return SerializedResponse(
@@ -143,6 +138,6 @@ class Paykeeper(ProviderClientBase):
         sign = hashlib.md5(string_to_sign.encode()).hexdigest()
         return sign == data["key"]
 
-    def get_callback_response(self, id: str) -> str:
-        sign = hashlib.md5((id + self.SECRET).encode()).hexdigest()
+    def get_callback_response(self, provider_order_id: str) -> str:
+        sign = hashlib.md5((provider_order_id + self.SECRET).encode()).hexdigest()
         return f"OK {sign}"

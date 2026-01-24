@@ -1,14 +1,25 @@
 from datetime import datetime
+from decimal import Decimal
 import os
 from typing import Annotated, List, Optional
 import aiohttp
+from sqlalchemy import or_
 from typing_extensions import Literal
 import uuid
-from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    Query,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import asc, desc, select
 from sqlalchemy.orm import selectinload
 from app.db import get_session
+from app.services.payment_systems.paykeeper import Paykeeper
 from app.settings import settings
 from .models import OrderStatus, Product
 from . import schemas
@@ -32,13 +43,41 @@ router = APIRouter(prefix="/orders", tags=["orders"])
     "/",
     response_model=OrderRead,
     status_code=status.HTTP_201_CREATED,
-    # dependencies=[Depends(RateLimiter(times=1, seconds=60))],
+    # dependencies=[Depends(RateLimiter(times=1, seconds=60))],7
 )
 async def create_order(
     order_in: OrderCreate, session: Annotated[AsyncSession, Depends(get_session)]
 ):
     async with session.begin():
-        order = Order()
+        products = (
+            await session.exec(
+                select(Product).where(
+                    Product.id.in_([link.product_id for link in order_in.product_links])
+                )
+            )
+        ).all()
+        delivery_items = []
+        order_amount = Decimal()
+        for product in products:
+            quantity = next(
+                (
+                    link.quantity
+                    for link in order_in.product_links
+                    if link.product_id == product.id
+                ),
+                1,
+            )
+            order_amount += product.rub_price * quantity
+            delivery_items.append(
+                DeliveryItem(
+                    quantity=quantity,
+                    weight=product.weight,
+                    length=product.length,
+                    width=product.width,
+                    height=product.height,
+                )
+            )
+        order = Order(amount=order_amount)
         session.add(order)
         await session.flush()
         # Add OrderDetail
@@ -47,41 +86,13 @@ async def create_order(
             order_id=order.id,
         )
         if order_in.detail.latitude and order_in.detail.longitude:
-            delivery_items = []
-            products = (
-                await session.exec(
-                    select(Product).where(
-                        Product.id.in_(
-                            [link.product_id for link in order_in.product_links]
-                        )
-                    )
-                )
-            ).all()
-            for product in products:
-                quantity = next(
-                    (
-                        link.quantity
-                        for link in order_in.product_links
-                        if link.product_id == product.id
-                    ),
-                    1,
-                )
-                delivery_items.append(
-                    DeliveryItem(
-                        quantity=quantity,
-                        weight=product.weight,
-                        length=product.length,
-                        width=product.width,
-                        height=product.height,
-                    )
-                )
             detail.delivery_price = await get_yandex_delivery_price(
                 delivery_items=delivery_items,
                 latitude=order_in.detail.latitude,
                 longitude=order_in.detail.longitude,
             )
         session.add(detail)
-        await session.flush()
+        order.detail = detail
 
         # Add OrderProductLinks
         for link in order_in.product_links:
@@ -89,10 +100,15 @@ async def create_order(
                 order_id=order.id, product_id=link.product_id, quantity=link.quantity
             )
             session.add(opl)
+        payment_system = Paykeeper()
+        payment_data = await payment_system.request_deposit(order)
+        if payment_data.success:
+            order.payment_data = payment_data.serialized_data.merchant_data.model_dump()
+            order.external_id = payment_data.serialized_data.provider_order_id
+            session.add(order)
         await session.commit()
     await session.refresh(order)
     await session.refresh(order, ["product_links", "detail"])
-    order.prepayment_amount = order.get_prepayment_amount()
     return order
 
 
@@ -254,3 +270,45 @@ async def estimate_delivery(
             longitude=order_in.detail.longitude,
         )
     }
+
+
+@router.post(f"{settings.WEBHOOK_PREFIX}/payment_webhook", include_in_schema=False)
+async def payment_webhook(
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    request_data = await request.json()
+    payment_system = Paykeeper()
+    response = None
+    if payment_system.check_webhook(request_data):
+        callback_data = payment_system.parse_callback_data(request_data)
+        order = (
+            await session.exec(
+                select(Order).where(
+                    or_(
+                        Order.id == callback_data.order_id,
+                        Order.external_id == callback_data.provider_order_id,
+                    )
+                )
+            )
+        ).one()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        final_statuses = [
+            OrderStatus.PAID,
+            OrderStatus.ERROR,
+            OrderStatus.CANCELLED,
+        ]
+        if (
+            callback_data.status in final_statuses
+            and order.status not in final_statuses
+        ):
+            order.amount_paid = callback_data.amount_actual
+            order.status = OrderStatus.PAID
+            session.add(order)
+            await session.commit()
+            await session.refresh(order)
+
+        response = payment_system.get_callback_response(callback_data.provider_order_id)
+
+    return response or "OK"

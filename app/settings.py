@@ -1,7 +1,7 @@
 from typing import Optional
 
-from pydantic import AnyHttpUrl, PostgresDsn, RedisDsn
-from pydantic_settings import BaseSettings
+from pydantic import AnyHttpUrl, ConfigDict, PostgresDsn, RedisDsn
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -12,11 +12,15 @@ class Settings(BaseSettings):
     YANDEX_DELIVERY_API_KEY: str = ""
     TG_BOT_KEY: str = ""
     TG_CHAT_ID: str = ""
+    TG_LOG_BOT_KEY: str = ""
     TG_LOG_CHAT_ID: str = ""
     DEBUG: bool = False
     PAYKEEPER_USER: str = ""
     PAYKEEPER_PASSWORD: str = ""
     PAYKEEPER_SECRET: str = ""
+    WEBHOOK_PREFIX: str = ""
+
+    model_config = SettingsConfigDict(extra="ignore")
 
 
 settings = Settings(_env_file=".env", _env_file_encoding="utf-8")

@@ -7,18 +7,18 @@ default_logger = logging.getLogger(__name__)
 
 
 class TgLogger:
-    BOT_TOKEN = settings.TG_BOT_KEY
+    BOT_TOKEN = settings.TG_LOG_BOT_KEY
     CHAT_ID = settings.TG_LOG_CHAT_ID
 
     async def _request(self, message: str):
-        if settings.TG_BOT_KEY and settings.TG_CHAT_ID:
+        if self.BOT_TOKEN and self.CHAT_ID:
             async with aiohttp.ClientSession() as session:
                 try:
                     async with session.post(
-                        f"https://api.telegram.org/bot{settings.TG_BOT_KEY}/sendMessage",
+                        f"https://api.telegram.org/bot{self.BOT_TOKEN}/sendMessage",
                         json={
-                            "chat_id": settings.TG_CHAT_ID,
-                            "text": message,
+                            "chat_id": self.CHAT_ID,
+                            "text": message[:4096],
                             "parse_mode": "MarkDown",
                         },
                         headers={"Content-Type": "application/json"},
@@ -27,20 +27,24 @@ class TgLogger:
                             print(
                                 "Error sending Telegram message status:",
                                 response.status,
+                                await response.json(),
                             )
                 except Exception as e:
                     print("Error sending Telegram message:", e)
 
     async def info(self, message: str):
-        default_logger.info(message)
+        print(message)
+        # default_logger.info(message)
         await self._request("INFO\n" + message)
 
     async def warning(self, message: str):
-        default_logger.warning(message)
+        print(message)
+        # default_logger.warning(message)
         await self._request("WARNING\n" + message)
 
     async def error(self, message: str):
-        default_logger.error(message)
+        print(message)
+        # default_logger.error(message)
         await self._request("ERROR\n" + message)
 
 

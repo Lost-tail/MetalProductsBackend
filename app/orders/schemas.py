@@ -6,6 +6,48 @@ import uuid
 from .models import OrderStatus
 
 
+class MerchantData(BaseModel):
+    """Дополнительная информация по заявке на стороне провайдера"""
+
+    payment_url: Optional[str] = Field(description="Платежная ссылка", default=None)
+    bank_name: Optional[str] = Field(description="Название банка", default=None)
+    card_holder_name: Optional[str] = Field(
+        description="Имя держателя карты", default=None
+    )
+    wallet: Optional[str] = Field(
+        description="Карта/телефон для депозита", default=None
+    )
+    currency: Optional[str] = Field(
+        description="Валюта оплаты на стороне провайдера", default=None
+    )
+    amount: Optional[str] = Field(
+        description="Сумма в валюте оплаты на стороне провайдера", default=None
+    )
+    extra_key: Optional[str] = Field(description="Дополнительное поле", default=None)
+    rate: Optional[str] = Field(description="Курс", default=None)
+
+
+class ProviderOrderInfo(BaseModel):
+    """Состояние заявки на стороне провайдера"""
+
+    order_id: Optional[uuid.UUID] = Field(description="ID модели Order", default=None)
+    provider_order_id: Optional[str] = Field(
+        description="ID заявки на стороне провайдера",
+        coerce_numbers_to_str=True,
+        default=None,
+    )
+    amount: Optional[Decimal] = Field(
+        description="Сумма заявки при создании", default=None, ge=0
+    )
+    amount_actual: Optional[Decimal] = Field(
+        description="Сумма заявки фактическая", default=None, ge=0
+    )
+    status: Optional[OrderStatus] = Field(description="Статус заявки", default=None)
+    merchant_data: Optional[MerchantData] = Field(
+        description="Платежная ссылка", default_factory=MerchantData
+    )
+
+
 class OrderDetailBase(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
@@ -70,16 +112,25 @@ class OrderBase(BaseModel):
 class OrderCreate(OrderBase):
     product_links: List[OrderProductLinkCreate]
     detail: OrderDetailCreate
-    prepayment_amount: Optional[Decimal] = None
 
 
 class OrderRead(OrderBase):
     id: uuid.UUID
     status: OrderStatus
+    amount: Decimal
     product_links: List[OrderProductLinkRead]
     detail: Optional[OrderDetailRead]
     created_at: datetime
     updated_at: datetime
+    payment_data: Optional[MerchantData]
+
+    class Config:
+        from_attributes = True
+
+
+class OrderAdminRead(OrderRead):
+    external_id: Optional[str]
+    amount_paid: Optional[Decimal]
 
     class Config:
         from_attributes = True
@@ -102,48 +153,6 @@ class DeliveryPrice(BaseModel):
 
 
 DataT = TypeVar("DataT")
-
-
-class MerchantData(BaseModel):
-    """Дополнительная информация по заявке на стороне провайдера"""
-
-    payment_url: Optional[str] = Field(description="Платежная ссылка", default=None)
-    bank_name: Optional[str] = Field(description="Название банка", default=None)
-    card_holder_name: Optional[str] = Field(
-        description="Имя держателя карты", default=None
-    )
-    wallet: Optional[str] = Field(
-        description="Карта/телефон для депозита", default=None
-    )
-    currency: Optional[str] = Field(
-        description="Валюта оплаты на стороне провайдера", default=None
-    )
-    amount: Optional[str] = Field(
-        description="Сумма в валюте оплаты на стороне провайдера", default=None
-    )
-    extra_key: Optional[str] = Field(description="Дополнительное поле", default=None)
-    rate: Optional[str] = Field(description="Курс", default=None)
-
-
-class ProviderOrderInfo(BaseModel):
-    """Состояние заявки на стороне провайдера"""
-
-    order_id: Optional[int] = Field(description="ID модели Order", default=None)
-    provider_order_id: Optional[str] = Field(
-        description="ID заявки на стороне провайдера",
-        coerce_numbers_to_str=True,
-        default=None,
-    )
-    amount: Optional[Decimal] = Field(
-        description="Сумма заявки при создании", default=None, ge=0
-    )
-    amount_actual: Optional[Decimal] = Field(
-        description="Сумма заявки фактическая", default=None, ge=0
-    )
-    status: Optional[OrderStatus] = Field(description="Статус заявки", default=None)
-    merchant_data: Optional[MerchantData] = Field(
-        description="Платежная ссылка", default_factory=MerchantData
-    )
 
 
 class SerializedResponse(BaseModel, Generic[DataT]):

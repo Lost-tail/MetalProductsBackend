@@ -13,7 +13,7 @@ class ProviderClientBase(ABC):
     @abstractmethod
     async def request_deposit(
         self, order: Type[Order]
-    ) -> Awaitable[SerializedResponse[ProviderOrderInfo]]:
+    ) -> SerializedResponse[ProviderOrderInfo]:
         "Запрос к провайдеру на создание депозита"
 
     @classmethod
@@ -24,7 +24,7 @@ class ProviderClientBase(ABC):
     @abstractmethod
     async def get_order_info(
         self, order: Order
-    ) -> Awaitable[SerializedResponse[ProviderOrderInfo]]:
+    ) -> SerializedResponse[ProviderOrderInfo]:
         "This method is used to get order status from merchant"
 
     @classmethod
@@ -57,7 +57,13 @@ class ProviderClientBase(ABC):
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.request(
-                    method, url, json=json, data=data, headers=headers, timeout=timeout
+                    method,
+                    url,
+                    json=json,
+                    data=data,
+                    headers=headers,
+                    timeout=timeout,
+                    ssl=False,
                 ) as response:
                     result_data = await response.json()
                     if not response.status < 300:
@@ -67,7 +73,7 @@ class ProviderClientBase(ABC):
             error = f"Ошибка: {err}"
             success = False
         if log:
-            logger.info(
+            await logger.info(
                 (f"Заявка № {order_id}\n" if order_id else "")
                 + f"{'Успешный' if success else 'Неудачный'} запрос к платежной системе {self.__class__.__name__}\n"
                 + "Параметры запроса:\n"
@@ -77,6 +83,7 @@ class ProviderClientBase(ABC):
                 + f"- DATA: {params or data or json}\n"
                 + "\nПараметры ответа:\n"
                 + f"- Статус: {response.status if response else ''}\n"
+                + f"- Заголовки: {response.headers}\n"
                 + f"- DATA: {result_data}\n"
                 + f"- Ошибка: {error}"
             )
