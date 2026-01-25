@@ -35,6 +35,7 @@ from .schemas import (
 from fastapi_limiter.depends import RateLimiter
 from app.services.yandex_delivery import get_yandex_delivery_price
 from app.services.schemas import DeliveryItem
+from app.services.logger import logger
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -277,38 +278,55 @@ async def payment_webhook(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    request_data = await request.json()
-    payment_system = Paykeeper()
-    response = None
-    if payment_system.check_webhook(request_data):
-        callback_data = payment_system.parse_callback_data(request_data)
-        order = (
-            await session.exec(
-                select(Order).where(
-                    or_(
-                        Order.id == callback_data.order_id,
-                        Order.external_id == callback_data.provider_order_id,
+    try:
+        request_data = await request.json()
+        payment_system = Paykeeper()
+        response = None
+        if payment_system.check_webhook(request_data):
+            callback_data = payment_system.parse_callback_data(request_data)
+            order = (
+                await session.exec(
+                    select(Order).where(
+                        or_(
+                            Order.id == callback_data.order_id,
+                            Order.external_id == callback_data.provider_order_id,
+                        )
                     )
                 )
-            )
-        ).one()
-        if not order:
-            raise HTTPException(status_code=404, detail="Order not found")
-        final_statuses = [
-            OrderStatus.PAID,
-            OrderStatus.ERROR,
-            OrderStatus.CANCELLED,
-        ]
-        if (
-            callback_data.status in final_statuses
-            and order.status not in final_statuses
-        ):
-            order.amount_paid = callback_data.amount_actual
-            order.status = OrderStatus.PAID
-            session.add(order)
-            await session.commit()
-            await session.refresh(order)
+            ).one()
+            if not order:
+                raise HTTPException(status_code=404, detail="Order not found")
+            final_statuses = [
+                OrderStatus.PAID,
+                OrderStatus.ERROR,
+                OrderStatus.CANCELLED,
+            ]
+            if (
+                callback_data.status in final_statuses
+                and order.status not in final_statuses
+            ):
+                order.amount_paid = callback_data.amount_actual
+                order.status = OrderStatus.PAID
+                session.add(order)
+                await session.commit()
+                await session.refresh(order)
 
-        response = payment_system.get_callback_response(callback_data.provider_order_id)
+            response = payment_system.get_callback_response(
+                callback_data.provider_order_id
+            )
+            logger.order(
+                f"Заявка № {order.id}\n"
+                + "Вебхук получен\n"
+                + f"Данные запроса: {request_data}\n\n"
+                + "Результат обработки:\n"
+                + f"- Айди заявки на стороне провайдера: {callback_data.provider_order_id}\n"
+                + f"- Статус заявки: {callback_data.status}\n"
+                + f"- Фактическая сумма: {callback_data.amount_actual}\n"
+                + f"- Доп. информация: {callback_data.merchant_data.model_dump(exclude_none=True, exclude_unset=True)}"
+            )
+    except Exception as err:
+        logger.error(
+            f"WEBHOOK ERROR\nHEADERS: {request.headers}\nDATA: {await request.body()}\nERROR: {err}"
+        )
 
     return response or "OK"
