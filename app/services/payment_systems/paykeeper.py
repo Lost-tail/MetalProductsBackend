@@ -114,10 +114,7 @@ class Paykeeper(ProviderClientBase):
         res: SerializedResponse = await self._make_request(
             resource=resource, method="GET", order_id=order.id
         )
-        if not self._get_param(res.raw_data, "invoice_id"):
-            res.success = False
-            res.error = f"Реквизиты не найдены.\n {res.raw_data}"
-        elif res.success:
+        if res.success:
             res.serialized_data = ProviderOrderInfo(
                 order_id=order.id,
                 provider_order_id=self._get_param(res.raw_data, "id"),
@@ -125,7 +122,7 @@ class Paykeeper(ProviderClientBase):
                     self._get_param(res.raw_data, "status"),
                     OrderStatus.ERROR,
                 ),
-                amount_actual=Decimal(self._get_param(res.raw_data, "pay_amount")),
+                amount_actual=Decimal(self._get_param(res.raw_data, "prepaid_sum")),
             )
         return res
 

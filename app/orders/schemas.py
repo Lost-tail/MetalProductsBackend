@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
-from pydantic import BaseModel, model_validator, EmailStr, Field
+from pydantic import BaseModel, model_validator, EmailStr, Field, Json
 import uuid
 from .models import OrderStatus
 
@@ -118,11 +118,13 @@ class OrderRead(OrderBase):
     id: uuid.UUID
     status: OrderStatus
     amount: Decimal
+    amount_paid: Decimal
     product_links: List[OrderProductLinkRead]
     detail: Optional[OrderDetailRead]
     created_at: datetime
     updated_at: datetime
     payment_data: Optional[MerchantData]
+    external_id: Optional[str]
 
     class Config:
         from_attributes = True

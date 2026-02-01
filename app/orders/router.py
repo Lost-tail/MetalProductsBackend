@@ -27,11 +27,15 @@ from app.auth.dependencies import get_admin_user, get_current_user
 from .models import Order, OrderDetail, OrderProductLink
 from .schemas import (
     DeliveryPrice,
+    MerchantData,
     OrderCreate,
     OrderRead,
     OrderUpdate,
+    ProviderOrderInfo,
     RequestForCall,
 )
+from fastapi_filter import FilterDepends
+from app.orders.filters import OrderFilter
 from fastapi_limiter.depends import RateLimiter
 from app.services.yandex_delivery import get_yandex_delivery_price
 from app.services.schemas import DeliveryItem
@@ -133,10 +137,9 @@ async def get_order(
 @router.get("/", response_model=List[OrderRead], dependencies=[Depends(get_admin_user)])
 async def get_orders(
     session: Annotated[AsyncSession, Depends(get_session)],
+    order_filter: OrderFilter = FilterDepends(OrderFilter),
     offset: int = 0,
     limit: int = 100,
-    sort_by: Optional[Literal["id", "status", "created_at"]] = "id",
-    order: Optional[Literal["asc", "desc"]] = "desc",
 ):
     query = (
         select(Order)
@@ -144,10 +147,11 @@ async def get_orders(
         .offset(offset)
         .limit(limit)
     )
-    if order == "asc":
-        query = query.order_by(asc(sort_by))
-    else:
-        query = query.order_by(desc(sort_by))
+
+    # Apply filtering and sorting from OrderFilter
+    query = order_filter.filter(query)
+    query = order_filter.sort(query)
+
     result = await session.exec(query)
     return result.all()
 
@@ -330,3 +334,29 @@ async def payment_webhook(
         )
 
     return response or "OK"
+
+
+@router.get(
+    "/{order_id}/provider_data",
+    response_model=ProviderOrderInfo,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_admin_user)],
+)
+async def get_order_provider_data(
+    order_id: uuid.UUID, session: Annotated[AsyncSession, Depends(get_session)]
+):
+    order = await session.get(
+        Order,
+        order_id,
+        options=[selectinload(Order.product_links), selectinload(Order.detail)],
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.external_id:
+        payment_system = Paykeeper()
+        res = await payment_system.get_order_info(order)
+        if res.success:
+            return res.serialized_data
+        else:
+            raise HTTPException(status_code=400, detail=res.error)
+    raise HTTPException(status_code=404, detail="Order does not have external_id")
