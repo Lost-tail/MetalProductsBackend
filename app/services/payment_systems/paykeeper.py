@@ -122,7 +122,7 @@ class Paykeeper(ProviderClientBase):
                     self._get_param(res.raw_data, "status"),
                     OrderStatus.ERROR,
                 ),
-                amount_actual=Decimal(self._get_param(res.raw_data, "prepaid_sum")),
+                amount_actual=Decimal(self._get_param(res.raw_data, "pay_amount")),
             )
         return res
 
