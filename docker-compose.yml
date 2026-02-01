@@ -39,7 +39,7 @@ services:
     networks:
       - metal_products
     volumes:
-      - static:/static
+      - static:/app/static
     depends_on:
       - postgres
       - redis
