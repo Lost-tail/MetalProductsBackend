@@ -285,10 +285,10 @@ async def payment_webhook(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
+    response = None
     try:
         request_data = await request.json()
         payment_system = Paykeeper()
-        response = None
         if payment_system.check_webhook(request_data):
             callback_data = payment_system.parse_callback_data(request_data)
             order = (
