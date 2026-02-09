@@ -105,12 +105,15 @@ async def create_order(
                 order_id=order.id, product_id=link.product_id, quantity=link.quantity
             )
             session.add(opl)
-        payment_system = Paykeeper()
-        payment_data = await payment_system.request_deposit(order)
-        if payment_data.success:
-            order.payment_data = payment_data.serialized_data.merchant_data.model_dump()
-            order.external_id = payment_data.serialized_data.provider_order_id
-            session.add(order)
+        if order_in.payment_method == "online":
+            payment_system = Paykeeper()
+            payment_data = await payment_system.request_deposit(order)
+            if payment_data.success:
+                order.payment_data = (
+                    payment_data.serialized_data.merchant_data.model_dump()
+                )
+                order.external_id = payment_data.serialized_data.provider_order_id
+        session.add(order)
         await session.commit()
     await session.refresh(order)
     await session.refresh(order, ["product_links", "detail"])

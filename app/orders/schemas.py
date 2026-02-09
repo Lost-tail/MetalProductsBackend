@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
+from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar, Union
 from pydantic import BaseModel, model_validator, EmailStr, Field, Json
 import uuid
 from .models import OrderStatus
@@ -112,6 +112,7 @@ class OrderBase(BaseModel):
 class OrderCreate(OrderBase):
     product_links: List[OrderProductLinkCreate]
     detail: OrderDetailCreate
+    payment_method: Literal["online", "offline"] = "offline"
 
 
 class OrderRead(OrderBase):
