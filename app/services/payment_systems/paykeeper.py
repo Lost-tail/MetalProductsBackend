@@ -65,7 +65,7 @@ class Paykeeper(ProviderClientBase):
         "Запрос к платежке на создание депозита"
         resource = "change/invoice/preview/"
         body = {
-            "pay_amount": order.get_prepayment_amount(),
+            "pay_amount": order.get_payment_amount(),
             "clientid": order.detail.first_name,
             "orderid": order.id,
             "client_email": order.detail.email,

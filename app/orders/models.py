@@ -86,7 +86,5 @@ class Order(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
-    def get_prepayment_amount(self) -> Decimal:
-        return (
-            self.amount + (self.detail.delivery_price if self.detail else Decimal())
-        ) * Decimal("0.3")
+    def get_payment_amount(self) -> Decimal:
+        return self.amount + (self.detail.delivery_price if self.detail else Decimal())

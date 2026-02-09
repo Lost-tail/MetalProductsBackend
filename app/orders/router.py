@@ -321,7 +321,7 @@ async def payment_webhook(
             response = payment_system.get_callback_response(
                 callback_data.provider_order_id
             )
-            logger.order(
+            await logger.info(
                 f"Заявка № {order.id}\n"
                 + "Вебхук получен\n"
                 + f"Данные запроса: {request_data}\n\n"
@@ -332,7 +332,7 @@ async def payment_webhook(
                 + f"- Доп. информация: {callback_data.merchant_data.model_dump(exclude_none=True, exclude_unset=True)}"
             )
     except Exception as err:
-        logger.error(
+        await logger.error(
             f"WEBHOOK ERROR\nHEADERS: {request.headers}\nDATA: {await request.body()}\nERROR: {err}"
         )
 
