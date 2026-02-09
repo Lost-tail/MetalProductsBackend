@@ -280,7 +280,7 @@ async def estimate_delivery(
     }
 
 
-@router.post(f"{settings.WEBHOOK_PREFIX}/payment_webhook", include_in_schema=False)
+@router.post(f"/{settings.WEBHOOK_PREFIX}/payment_webhook", include_in_schema=False)
 async def payment_webhook(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_session)],
