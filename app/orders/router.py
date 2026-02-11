@@ -4,7 +4,7 @@ import os
 from typing import Annotated, List, Optional
 import aiohttp
 from sqlalchemy import or_
-from typing_extensions import Literal
+import traceback
 import uuid
 from fastapi import (
     APIRouter,
@@ -333,7 +333,7 @@ async def payment_webhook(
             )
     except Exception as err:
         await logger.error(
-            f"WEBHOOK ERROR\nHEADERS: {request.headers}\nDATA: {await request.body()}\nERROR: {err}"
+            f"WEBHOOK ERROR\nHEADERS: {request.headers}\nDATA: {await request.body()}\nERROR: {traceback.format_exc()}"
         )
 
     return response or "OK"
