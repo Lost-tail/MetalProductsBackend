@@ -2,9 +2,10 @@ from datetime import datetime
 from typing import Optional
 import uuid
 from decimal import Decimal
+from enum import Enum
 from sqlmodel import Field, Relationship, SQLModel
 from sqlalchemy import Column, JSON
-from .schemas import ProductCharacteristic
+from .schemas import ProductCharacteristic, CargoType
 
 from typing import TYPE_CHECKING
 
@@ -25,16 +26,8 @@ class Product(SQLModel, table=True):
     characteristics: list[ProductCharacteristic] = Field(
         default_factory=list, sa_column=Column(JSON)
     )
-    weight: Optional[Decimal] = Field(title="Вес товара", default=Decimal("0.0"))
-    width: Optional[Decimal] = Field(
-        title="Ширина товара, в метрах", default=Decimal("0.0")
-    )
-    height: Optional[Decimal] = Field(
-        title="Высота товара, в метрах", default=Decimal("0.0")
-    )
-    length: Optional[Decimal] = Field(
-        title="Длина товара, в метрах", default=Decimal("0.0")
-    )
+    cargo_type: CargoType = Field(title="Тип груза", default=CargoType.LARGE)
+
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 

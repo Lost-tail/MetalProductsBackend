@@ -5,6 +5,13 @@ from pydantic import BaseModel
 from enum import Enum
 
 
+class CargoType(str, Enum):
+    SMALL = "van"
+    MEDIUM = "lcv_m"
+    LARGE = "lcv_l"
+    EXTRA_LARGE = "lcv_xl"
+
+
 class CharacteristicIcon(str, Enum):
     ARROW_VERTICAL = "arrow_v"
     ARROW_HORIZONTAL = "arrow_h"
@@ -32,10 +39,7 @@ class ProductCreate(BaseModel):
     is_main: Optional[bool] = None
     characteristics: Optional[List[ProductCharacteristic]] = None
     category_id: Optional[uuid.UUID] = None
-    weight: Optional[Decimal] = None
-    width: Optional[Decimal] = None
-    height: Optional[Decimal] = None
-    length: Optional[Decimal] = None
+    cargo_type: Optional[CargoType] = None
     # images: Optional[List[str]] = None
 
 
@@ -48,7 +52,4 @@ class ProductUpdate(BaseModel):
     images: Optional[List[str]] = None
     characteristics: Optional[List[ProductCharacteristic]] = None
     category_id: Optional[uuid.UUID] = None
-    weight: Optional[Decimal] = None
-    width: Optional[Decimal] = None
-    height: Optional[Decimal] = None
-    length: Optional[Decimal] = None
+    cargo_type: Optional[CargoType] = None

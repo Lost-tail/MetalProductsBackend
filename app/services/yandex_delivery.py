@@ -15,22 +15,25 @@ async def get_yandex_delivery_price(
         "Authorization": f"Bearer {settings.YANDEX_DELIVERY_API_KEY}",
     }
     items = []
+    cargo_type_weight = {
+        "van": 1000,
+        "lcv_m": 2000,
+        "lcv_l": 4000,
+        "lcv_xl": 8000,
+    }
+    cargo_type = None
+    current_max_weight = 0
     for delivery_item in delivery_items:
         item = {
             "quantity": delivery_item.quantity,
         }
-        if delivery_item.weight is not None:
-            item["weight"] = float(delivery_item.weight)
         if (
-            delivery_item.length is not None
-            and delivery_item.width is not None
-            and delivery_item.height is not None
+            delivery_item.cargo_type
+            and cargo_type_weight.get(delivery_item.cargo_type, 0) > current_max_weight
         ):
-            item["size"] = {
-                "length": float(delivery_item.length),
-                "width": float(delivery_item.width),
-                "height": float(delivery_item.height),
-            }
+            cargo_type = delivery_item.cargo_type
+            current_max_weight = cargo_type_weight[delivery_item.cargo_type]
+
         items.append(item)
     payload = {
         "items": items,
@@ -43,7 +46,7 @@ async def get_yandex_delivery_price(
                 ]
             },
         ],
-        "requirements": {"cargo_type": "lcv_m", "taxi_class": "cargo"},
+        "requirements": {"cargo_type": cargo_type, "taxi_class": "cargo"},
     }
     print("Yandex delivery request payload:", payload)
     try:

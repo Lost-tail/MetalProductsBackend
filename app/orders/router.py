@@ -265,10 +265,7 @@ async def estimate_delivery(
         delivery_items.append(
             DeliveryItem(
                 quantity=quantity,
-                weight=product.weight,
-                length=product.length,
-                width=product.width,
-                height=product.height,
+                cargo_type=product.cargo_type,
             )
         )
     return {
