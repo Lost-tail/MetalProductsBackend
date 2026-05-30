@@ -36,6 +36,7 @@ class ProductCreate(BaseModel):
     description: Optional[str] = None
     rub_price: Decimal
     is_active: Optional[bool] = None
+    is_available: Optional[bool] = None
     is_main: Optional[bool] = None
     characteristics: Optional[List[ProductCharacteristic]] = None
     category_id: Optional[uuid.UUID] = None
@@ -48,6 +49,7 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = None
     rub_price: Optional[Decimal] = None
     is_active: Optional[bool] = None
+    is_available: Optional[bool] = None
     is_main: Optional[bool] = None
     images: Optional[List[str]] = None
     characteristics: Optional[List[ProductCharacteristic]] = None

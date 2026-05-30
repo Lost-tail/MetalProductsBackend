@@ -29,6 +29,7 @@ from .schemas import (
     DeliveryPrice,
     MerchantData,
     OrderCreate,
+    OrderProductLinkCreate,
     OrderRead,
     OrderUpdate,
     ProviderOrderInfo,
@@ -42,6 +43,28 @@ from app.services.schemas import DeliveryItem
 from app.services.logger import logger
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+
+
+def validate_order_products(
+    product_links: list[OrderProductLinkCreate],
+    products: list[Product],
+) -> None:
+    requested_ids = {link.product_id for link in product_links}
+    found_ids = {product.id for product in products}
+
+    missing_ids = requested_ids - found_ids
+    if missing_ids:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Products not found: {', '.join(str(i) for i in missing_ids)}",
+        )
+
+    for product in products:
+        if not product.is_active or not product.is_available:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Product '{product.name}' is not available for order",
+            )
 
 
 @router.post(
@@ -61,6 +84,7 @@ async def create_order(
                 )
             )
         ).all()
+        validate_order_products(order_in.product_links, products)
         delivery_items = []
         order_amount = Decimal()
         for product in products:
@@ -76,10 +100,7 @@ async def create_order(
             delivery_items.append(
                 DeliveryItem(
                     quantity=quantity,
-                    weight=product.weight,
-                    length=product.length,
-                    width=product.width,
-                    height=product.height,
+                    cargo_type=product.cargo_type,
                 )
             )
         order = Order(amount=order_amount)
@@ -253,6 +274,7 @@ async def estimate_delivery(
             )
         )
     ).all()
+    validate_order_products(order_in.product_links, products)
     for product in products:
         quantity = next(
             (

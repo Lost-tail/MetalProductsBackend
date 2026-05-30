@@ -100,6 +100,7 @@ async def read_list_product(
     client: Annotated[Optional[User], Depends(get_current_user)],
     category_id: Optional[uuid.UUID] = Query(None),
     is_main: Optional[bool] = Query(None),
+    is_available: Optional[bool] = Query(None),
     offset: int = 0,
     limit: Annotated[int, Query()] = 100,
     sort_by: Optional[Literal["id", "name", "rub_price", "created_at"]] = "id",
@@ -112,6 +113,8 @@ async def read_list_product(
         query = query.where(Product.category_id == category_id)
     if is_main is not None:
         query = query.where(Product.is_main == is_main)
+    if is_available is not None:
+        query = query.where(Product.is_available == is_available)
     query = query.offset(offset).limit(limit)
     if order == "asc":
         query = query.order_by(asc(sort_by))

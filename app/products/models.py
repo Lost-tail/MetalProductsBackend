@@ -21,6 +21,7 @@ class Product(SQLModel, table=True):
         title="Цена товара в рублях", max_digits=12, decimal_places=2, gt=0
     )
     is_active: bool = Field(title="Активен?", default=True)
+    is_available: bool = Field(title="Доступен для заказа?", default=True)
     is_main: bool = Field(title="Отображать на главно?", default=False)
     images: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     characteristics: list[ProductCharacteristic] = Field(
