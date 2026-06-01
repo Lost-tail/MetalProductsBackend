@@ -31,6 +31,9 @@ def upgrade() -> None:
 
     # Шаг 3: сделать NOT NULL
     op.alter_column("product", "is_available", nullable=False)
+
+    # cargo_type: заполнить NULL перед NOT NULL (default в модели — LARGE)
+    op.execute("UPDATE product SET cargo_type = 'LARGE' WHERE cargo_type IS NULL")
     op.alter_column(
         "product",
         "cargo_type",
