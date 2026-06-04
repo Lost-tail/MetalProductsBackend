@@ -20,6 +20,14 @@ class CharacteristicIcon(str, Enum):
     BARBECUE = "barbecue"
     OVEN = "oven"
     ROOF = "roof"
+    CHIMNEY = "chimney"
+    DOOR = "door"
+    COLOR_PAINT = "color_paint"
+    KAZAN = "kazan"
+    SKEWERS = "skewers"
+    MATERIAL = "material"
+    WEIGHT = "weight"
+    WORKING_HEIGHT = "working_height"
 
 
 class ProductCharacteristic(BaseModel):
